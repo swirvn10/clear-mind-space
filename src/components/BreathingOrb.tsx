@@ -3,17 +3,24 @@ import React from 'react';
 interface BreathingOrbProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  intensity?: 'low' | 'medium' | 'high';
 }
 
-const BreathingOrb: React.FC<BreathingOrbProps> = ({ size = 'md', className = '' }) => {
+const BreathingOrb: React.FC<BreathingOrbProps> = ({ size = 'md', className = '', intensity = 'medium' }) => {
   const sizeClasses = {
     sm: 'w-32 h-32',
     md: 'w-48 h-48',
     lg: 'w-64 h-64',
   };
 
+  const intensityClasses = {
+    low: 'opacity-60',
+    medium: 'opacity-80',
+    high: 'opacity-100',
+  };
+
   return (
-    <div className={`relative ${sizeClasses[size]} ${className}`}>
+    <div className={`relative ${sizeClasses[size]} ${intensityClasses[intensity]} ${className}`}>
       {/* Outer glow */}
       <div className="absolute inset-0 rounded-full bg-primary/20 blur-3xl animate-breathe" />
       
