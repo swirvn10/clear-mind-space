@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Send, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface Message {
   id: string;
@@ -14,6 +15,8 @@ interface ChatViewProps {
   onBack: () => void;
 }
 
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+
 const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -25,7 +28,7 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
   ]);
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -37,8 +40,91 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
     scrollToBottom();
   }, [messages]);
 
+  const streamChat = async (
+    chatMessages: { role: string; content: string }[],
+    onDelta: (text: string) => void,
+    onDone: () => void
+  ) => {
+    const resp = await fetch(CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ messages: chatMessages }),
+    });
+
+    if (!resp.ok) {
+      const errorData = await resp.json().catch(() => ({}));
+      if (resp.status === 429) {
+        throw new Error(errorData.error || "Rate limit reached. Please wait a moment.");
+      }
+      if (resp.status === 402) {
+        throw new Error(errorData.error || "Usage limit reached.");
+      }
+      throw new Error(errorData.error || "Failed to get response");
+    }
+
+    if (!resp.body) throw new Error("No response body");
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let textBuffer = "";
+    let streamDone = false;
+
+    while (!streamDone) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      textBuffer += decoder.decode(value, { stream: true });
+
+      let newlineIndex: number;
+      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+        let line = textBuffer.slice(0, newlineIndex);
+        textBuffer = textBuffer.slice(newlineIndex + 1);
+
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") {
+          streamDone = true;
+          break;
+        }
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) onDelta(content);
+        } catch {
+          textBuffer = line + "\n" + textBuffer;
+          break;
+        }
+      }
+    }
+
+    // Final flush
+    if (textBuffer.trim()) {
+      for (let raw of textBuffer.split("\n")) {
+        if (!raw) continue;
+        if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+        if (raw.startsWith(":") || raw.trim() === "") continue;
+        if (!raw.startsWith("data: ")) continue;
+        const jsonStr = raw.slice(6).trim();
+        if (jsonStr === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) onDelta(content);
+        } catch { /* ignore */ }
+      }
+    }
+
+    onDone();
+  };
+
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -49,27 +135,47 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
-    setIsTyping(true);
+    setIsLoading(true);
 
-    // Simulated AI response (to be replaced with actual AI integration)
-    setTimeout(() => {
-      const responses = [
-        "I hear you. That sounds really difficult to carry. Let's slow this down together.",
-        "It makes complete sense that you'd feel this way. What part of this feels heaviest right now?",
-        "Thank you for sharing that. Before we go further, take a breath. What do you notice?",
-        "That's a lot to hold. Let's look at what's actually in your control here.",
-      ];
-      
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: responses[Math.floor(Math.random() * responses.length)],
-        timestamp: new Date(),
-      };
-      
-      setMessages((prev) => [...prev, aiMessage]);
-      setIsTyping(false);
-    }, 1500);
+    let assistantContent = "";
+    
+    const upsertAssistant = (chunk: string) => {
+      assistantContent += chunk;
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && last.id.startsWith("streaming-")) {
+          return prev.map((m, i) =>
+            i === prev.length - 1 ? { ...m, content: assistantContent } : m
+          );
+        }
+        return [
+          ...prev,
+          {
+            id: `streaming-${Date.now()}`,
+            role: "assistant" as const,
+            content: assistantContent,
+            timestamp: new Date(),
+          },
+        ];
+      });
+    };
+
+    try {
+      const chatHistory = [...messages, userMessage].map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      await streamChat(
+        chatHistory,
+        (chunk) => upsertAssistant(chunk),
+        () => setIsLoading(false)
+      );
+    } catch (error) {
+      console.error("Chat error:", error);
+      toast.error(error instanceof Error ? error.message : "Something went wrong");
+      setIsLoading(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -97,7 +203,7 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
               {mode === 'voice' ? 'Voice mode' : 'Text mode'}
             </span>
           </div>
-          <div className="w-10" /> {/* Spacer for alignment */}
+          <div className="w-10" />
         </div>
       </header>
 
@@ -117,12 +223,12 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
                     : 'bg-card border border-border/50 rounded-bl-md'
                 }`}
               >
-                <p className="text-body leading-relaxed">{message.content}</p>
+                <p className="text-body leading-relaxed whitespace-pre-wrap">{message.content}</p>
               </div>
             </div>
           ))}
           
-          {isTyping && (
+          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
             <div className="flex justify-start animate-fade-in">
               <div className="bg-card border border-border/50 rounded-2xl rounded-bl-md px-5 py-4">
                 <div className="flex gap-1.5">
@@ -160,7 +266,8 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
               onKeyDown={handleKeyDown}
               placeholder="Share what's on your mind..."
               rows={1}
-              className="w-full resize-none rounded-xl border border-border/50 bg-card px-4 py-3 text-body placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+              disabled={isLoading}
+              className="w-full resize-none rounded-xl border border-border/50 bg-card px-4 py-3 text-body placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all disabled:opacity-50"
               style={{ minHeight: '48px', maxHeight: '120px' }}
             />
           </div>
@@ -169,7 +276,7 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
             variant="default"
             size="icon"
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isLoading}
             className="shrink-0"
           >
             <Send className="w-5 h-5" />
