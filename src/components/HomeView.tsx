@@ -1,0 +1,68 @@
+import React from 'react';
+import { MessageCircle, Mic } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import BreathingOrb from './BreathingOrb';
+
+interface HomeViewProps {
+  onStartChat: (mode: 'text' | 'voice') => void;
+}
+
+const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 pb-24 pt-12 animate-fade-in">
+      {/* Background gradient */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center text-center max-w-md mx-auto">
+        {/* Breathing orb */}
+        <div className="mb-12">
+          <BreathingOrb size="lg" />
+        </div>
+
+        {/* Logo/Title */}
+        <h1 className="text-display font-semibold text-foreground mb-4 tracking-tight">
+          ClearMind
+        </h1>
+        
+        <p className="text-body-lg text-muted-foreground mb-12 text-balance">
+          A quiet space to untangle your thoughts and find clarity.
+        </p>
+
+        {/* Primary CTA */}
+        <Button
+          variant="glow"
+          size="xl"
+          onClick={() => onStartChat('text')}
+          className="w-full max-w-xs mb-4"
+        >
+          <MessageCircle className="w-6 h-6" />
+          Talk it out
+        </Button>
+
+        {/* Voice option */}
+        <Button
+          variant="calm"
+          size="lg"
+          onClick={() => onStartChat('voice')}
+          className="w-full max-w-xs"
+        >
+          <Mic className="w-5 h-5" />
+          Voice mode
+          <span className="ml-2 text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
+            Premium
+          </span>
+        </Button>
+
+        {/* Subtle tagline */}
+        <p className="mt-12 text-sm text-muted-foreground/60">
+          Not therapy. Just clarity.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default HomeView;
