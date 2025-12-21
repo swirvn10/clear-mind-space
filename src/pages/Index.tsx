@@ -1,12 +1,44 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import React, { useState } from 'react';
+import HomeView from '@/components/HomeView';
+import ChatView from '@/components/ChatView';
+import JournalView from '@/components/JournalView';
+import ResetView from '@/components/ResetView';
+import PricingView from '@/components/PricingView';
+import NavigationBar from '@/components/NavigationBar';
+
+type View = 'home' | 'chat' | 'journal' | 'reset' | 'pricing';
+type ChatMode = 'text' | 'voice';
 
 const Index = () => {
+  const [currentView, setCurrentView] = useState<View>('home');
+  const [chatMode, setChatMode] = useState<ChatMode>('text');
+
+  const handleStartChat = (mode: ChatMode) => {
+    setChatMode(mode);
+    setCurrentView('chat');
+  };
+
+  const handleNavigate = (view: string) => {
+    setCurrentView(view as View);
+  };
+
+  const handleBackFromChat = () => {
+    setCurrentView('home');
+  };
+
+  // Chat view has its own navigation
+  if (currentView === 'chat') {
+    return <ChatView mode={chatMode} onBack={handleBackFromChat} />;
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      {currentView === 'home' && <HomeView onStartChat={handleStartChat} />}
+      {currentView === 'journal' && <JournalView />}
+      {currentView === 'reset' && <ResetView />}
+      {currentView === 'pricing' && <PricingView />}
+      
+      <NavigationBar activeView={currentView} onNavigate={handleNavigate} />
     </div>
   );
 };
