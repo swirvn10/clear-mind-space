@@ -2,12 +2,16 @@ import React from 'react';
 import { MessageCircle, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BreathingOrb from './BreathingOrb';
+import MoodCheckinCard from './MoodCheckinCard';
+import { useAuth } from '@/hooks/useAuth';
 
 interface HomeViewProps {
   onStartChat: (mode: 'text' | 'voice') => void;
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 pb-24 pt-12 animate-fade-in">
       {/* Background gradient */}
@@ -16,9 +20,9 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center text-center max-w-md mx-auto">
+      <div className="relative z-10 flex flex-col items-center text-center max-w-md mx-auto w-full">
         {/* Breathing orb */}
-        <div className="mb-12">
+        <div className="mb-8">
           <BreathingOrb size="lg" />
         </div>
 
@@ -27,9 +31,16 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
           ClearMind
         </h1>
         
-        <p className="text-body-lg text-muted-foreground mb-12 text-balance">
+        <p className="text-body-lg text-muted-foreground mb-8 text-balance">
           A quiet space to untangle your thoughts and find clarity.
         </p>
+
+        {/* Mood check-in for logged in users */}
+        {user && (
+          <div className="w-full mb-8">
+            <MoodCheckinCard />
+          </div>
+        )}
 
         {/* Primary CTA */}
         <Button
