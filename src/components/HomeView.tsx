@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { MessageCircle, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BreathingOrb from './BreathingOrb';
 import MoodCheckinCard from './MoodCheckinCard';
 import StreakDisplay from './StreakDisplay';
 import MilestoneCelebration from './MilestoneCelebration';
+import ContextualSuggestions, { getTimeGreeting } from './ContextualSuggestions';
 import { useAuth } from '@/hooks/useAuth';
 import { useStreak } from '@/hooks/useStreak';
+import { useProfile } from '@/hooks/useProfile';
 
 interface HomeViewProps {
   onStartChat: (mode: 'text' | 'voice') => void;
@@ -15,6 +17,7 @@ interface HomeViewProps {
 const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
   const { user } = useAuth();
   const { streakCount, isNewMilestone, milestone, clearMilestone, loading: streakLoading } = useStreak();
+  const { profile, loading: profileLoading } = useProfile();
 
   return (
     <>
@@ -41,14 +44,33 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
           </div>
         )}
 
-        {/* Logo/Title */}
-        <h1 className="text-display font-semibold text-foreground mb-4 tracking-tight">
-          ClearMind
-        </h1>
-        
-        <p className="text-body-lg text-muted-foreground mb-8 text-balance">
-          A quiet space to untangle your thoughts and find clarity.
-        </p>
+        {/* Personalized greeting or Logo */}
+        {user && profile?.displayName ? (
+          <>
+            <h1 className="text-display font-semibold text-foreground mb-2 tracking-tight">
+              {getTimeGreeting()}, {profile.displayName}
+            </h1>
+            <p className="text-body-lg text-muted-foreground mb-6 text-balance">
+              What's on your mind today?
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-display font-semibold text-foreground mb-4 tracking-tight">
+              ClearMind
+            </h1>
+            <p className="text-body-lg text-muted-foreground mb-8 text-balance">
+              A quiet space to untangle your thoughts and find clarity.
+            </p>
+          </>
+        )}
+
+        {/* Contextual suggestions based on goals */}
+        {user && !profileLoading && profile?.goals && profile.goals.length > 0 && (
+          <div className="w-full mb-6">
+            <ContextualSuggestions goals={profile.goals} />
+          </div>
+        )}
 
         {/* Mood check-in for logged in users */}
         {user && (
