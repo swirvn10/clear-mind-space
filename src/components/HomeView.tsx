@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { MessageCircle, Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BreathingOrb from './BreathingOrb';
 import MoodCheckinCard from './MoodCheckinCard';
+import StreakDisplay from './StreakDisplay';
+import MilestoneCelebration from './MilestoneCelebration';
 import { useAuth } from '@/hooks/useAuth';
+import { useStreak } from '@/hooks/useStreak';
 
 interface HomeViewProps {
   onStartChat: (mode: 'text' | 'voice') => void;
@@ -11,8 +14,13 @@ interface HomeViewProps {
 
 const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
   const { user } = useAuth();
+  const { streakCount, isNewMilestone, milestone, clearMilestone, loading: streakLoading } = useStreak();
 
   return (
+    <>
+      {isNewMilestone && milestone && (
+        <MilestoneCelebration milestone={milestone} onClose={clearMilestone} />
+      )}
     <div className="min-h-screen flex flex-col items-center justify-center px-6 pb-24 pt-12 animate-fade-in">
       {/* Background gradient */}
       <div className="fixed inset-0 pointer-events-none">
@@ -25,6 +33,13 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
         <div className="mb-8">
           <BreathingOrb size="lg" />
         </div>
+
+        {/* Streak display */}
+        {user && !streakLoading && (
+          <div className="mb-4">
+            <StreakDisplay streakCount={streakCount} size="lg" />
+          </div>
+        )}
 
         {/* Logo/Title */}
         <h1 className="text-display font-semibold text-foreground mb-4 tracking-tight">
@@ -73,6 +88,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
         </p>
       </div>
     </div>
+    </>
   );
 };
 
