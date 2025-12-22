@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, LogOut, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, User, LogOut, Moon, Sun, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
+import { useUserRole } from '@/hooks/useUserRole';
 import ReminderSettings from './ReminderSettings';
 import AvatarUpload from './AvatarUpload';
 import { useTheme } from 'next-themes';
@@ -15,8 +17,10 @@ interface SettingsViewProps {
 }
 
 const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { profile, loading, updateProfile } = useProfile();
+  const { isAdmin, loading: roleLoading } = useUserRole();
   const { theme, setTheme } = useTheme();
   
   const [displayName, setDisplayName] = useState('');
@@ -58,7 +62,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
 
   const hasChanges = profile && displayName !== (profile.displayName || '');
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -160,6 +164,20 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
 
         {/* Reminder Settings */}
         <ReminderSettings />
+
+        {/* Admin Dashboard Link - Only for admins */}
+        {isAdmin && (
+          <section className="bg-card rounded-2xl p-6 border border-border/50">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/admin')}
+              className="w-full"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              Admin Dashboard
+            </Button>
+          </section>
+        )}
 
         {/* Sign Out */}
         <section className="bg-card rounded-2xl p-6 border border-border/50">
