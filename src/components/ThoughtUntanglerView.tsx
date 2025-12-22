@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Brain, ArrowRight, Lightbulb, Heart, Target, Link2, Loader2, History, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Brain, ArrowRight, Lightbulb, Heart, Target, Link2, Loader2, History, Trash2, ChevronDown, ChevronUp, Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import MindMapVisualization from './MindMapVisualization';
 
 interface Theme {
   title: string;
@@ -302,6 +303,27 @@ const ThoughtUntanglerView: React.FC = () => {
         {/* Analysis Results */}
         {analysis && !isLoading && (
           <div className="space-y-6 animate-fade-in">
+            {/* Mind Map Visualization */}
+            {analysis.themes && analysis.themes.length > 0 && (
+              <Card className="border-border/50 bg-card/50 backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Network className="w-5 h-5 text-primary" />
+                    Mind Map
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MindMapVisualization 
+                    themes={analysis.themes} 
+                    connections={analysis.connections || []} 
+                  />
+                  <p className="text-xs text-muted-foreground text-center mt-4">
+                    Tap on a theme to see details • Hover over connections to see relationships
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Clarity Statement */}
             <Card className="border-primary/30 bg-primary/5 backdrop-blur">
               <CardContent className="pt-6">
