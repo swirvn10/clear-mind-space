@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, Camera, LogOut, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, User, LogOut, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import ReminderSettings from './ReminderSettings';
+import AvatarUpload from './AvatarUpload';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 
@@ -19,13 +20,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
   const { theme, setTheme } = useTheme();
   
   const [displayName, setDisplayName] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.displayName || '');
-      setAvatarUrl(profile.avatarUrl || '');
     }
   }, [profile]);
 
@@ -34,7 +33,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
     
     setIsSaving(true);
     try {
-      await updateProfile({ displayName, avatarUrl });
+      await updateProfile({ displayName });
       toast.success('Profile updated successfully!');
     } catch (error) {
       toast.error('Failed to update profile');
@@ -43,15 +42,21 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
     }
   };
 
+  const handleAvatarUpload = async (url: string) => {
+    if (!updateProfile) return;
+    try {
+      await updateProfile({ avatarUrl: url });
+    } catch (error) {
+      toast.error('Failed to save avatar');
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
     onBack();
   };
 
-  const hasChanges = profile && (
-    displayName !== (profile.displayName || '') ||
-    avatarUrl !== (profile.avatarUrl || '')
-  );
+  const hasChanges = profile && displayName !== (profile.displayName || '');
 
   if (loading) {
     return (
@@ -81,30 +86,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
             <h2 className="text-lg font-medium text-foreground">Profile</h2>
           </div>
 
-          {/* Avatar Preview */}
+          {/* Avatar Upload */}
           <div className="flex items-center gap-4">
-            <div className="relative">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt="Avatar"
-                  className="w-16 h-16 rounded-full object-cover bg-secondary"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
-                  <User className="w-8 h-8 text-muted-foreground" />
-                </div>
-              )}
-              <div className="absolute -bottom-1 -right-1 bg-primary rounded-full p-1">
-                <Camera className="w-3 h-3 text-primary-foreground" />
-              </div>
-            </div>
+            <AvatarUpload 
+              currentAvatarUrl={profile?.avatarUrl || null}
+              onUploadComplete={handleAvatarUpload}
+            />
             <div className="flex-1">
               <p className="text-sm text-muted-foreground">
                 {user?.email}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Click avatar to upload
               </p>
             </div>
           </div>
@@ -121,20 +114,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
             />
           </div>
 
-          {/* Avatar URL */}
-          <div className="space-y-2">
-            <Label htmlFor="avatarUrl">Avatar URL</Label>
-            <Input
-              id="avatarUrl"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://example.com/avatar.jpg"
-              className="bg-secondary"
-            />
-            <p className="text-xs text-muted-foreground">
-              Enter a URL to an image for your profile picture
-            </p>
-          </div>
 
           {/* Save Button */}
           {hasChanges && (
