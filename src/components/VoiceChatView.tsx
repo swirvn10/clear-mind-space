@@ -37,9 +37,9 @@ const VoiceChatView: React.FC<VoiceChatViewProps> = ({ onBack }) => {
   const handleConnectionChange = useCallback((status: 'connecting' | 'connected' | 'disconnected') => {
     setConnectionStatus(status);
     if (status === 'connected') {
-      toast.success("Connected - Start speaking");
+      toast.success("Ready to listen", { description: "Take your time. Speak when you're ready." });
     } else if (status === 'disconnected' && chatRef.current) {
-      toast.info("Voice session ended");
+      toast.info("Conversation ended", { description: "Take care of yourself." });
     }
   }, []);
 
@@ -111,13 +111,18 @@ const VoiceChatView: React.FC<VoiceChatViewProps> = ({ onBack }) => {
         {connectionStatus === 'disconnected' ? (
           <div className="text-center space-y-8">
             <BreathingOrb size="lg" />
-            <div className="space-y-3">
+            <div className="space-y-4">
               <h2 className="text-2xl font-display font-semibold text-foreground">
-                Voice Mode
+                Voice Conversation
               </h2>
-              <p className="text-muted-foreground max-w-sm">
-                Speak freely with ClearMind. Your voice will be transcribed and the AI will respond with speech.
+              <p className="text-muted-foreground max-w-sm leading-relaxed">
+                Share what's on your mind. ClearMind will listen with care and help you find clarity through gentle, grounded conversation.
               </p>
+              <div className="flex flex-wrap justify-center gap-2 pt-2">
+                <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">Calm & patient</span>
+                <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">No judgment</span>
+                <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">Your pace</span>
+              </div>
             </div>
             <Button
               variant="default"
@@ -126,7 +131,7 @@ const VoiceChatView: React.FC<VoiceChatViewProps> = ({ onBack }) => {
               className="gap-2"
             >
               <Phone className="w-5 h-5" />
-              Start Voice Session
+              Begin Conversation
             </Button>
           </div>
         ) : (
@@ -150,7 +155,7 @@ const VoiceChatView: React.FC<VoiceChatViewProps> = ({ onBack }) => {
                 )}
               </div>
               <p className="mt-4 text-sm text-muted-foreground">
-                {isSpeaking ? 'ClearMind is speaking...' : 'Listening...'}
+                {isSpeaking ? 'ClearMind is here with you...' : 'I\'m listening...'}
               </p>
             </div>
 
