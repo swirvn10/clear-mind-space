@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { Move, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Theme {
   title: string;
@@ -18,57 +20,102 @@ interface MindMapVisualizationProps {
   connections: Connection[];
 }
 
-interface NodePosition {
+interface Position {
   x: number;
   y: number;
-  theme: Theme;
 }
 
 const MindMapVisualization: React.FC<MindMapVisualizationProps> = ({ themes, connections }) => {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [hoveredConnection, setHoveredConnection] = useState<number | null>(null);
+  const [draggingNode, setDraggingNode] = useState<string | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  // Calculate node positions in a circular layout
-  const nodePositions = useMemo((): NodePosition[] => {
+  // Calculate initial node positions in a circular layout
+  const initialPositions = useMemo((): Record<string, Position> => {
     const centerX = 200;
     const centerY = 180;
     const radius = 120;
 
-    return themes.map((theme, index) => {
+    const positions: Record<string, Position> = {};
+    themes.forEach((theme, index) => {
       const angle = (2 * Math.PI * index) / themes.length - Math.PI / 2;
-      return {
+      positions[theme.title] = {
         x: centerX + radius * Math.cos(angle),
         y: centerY + radius * Math.sin(angle),
-        theme,
       };
     });
+    return positions;
   }, [themes]);
 
-  // Find connections between nodes
+  // Track custom positions (overrides initial positions when dragged)
+  const [customPositions, setCustomPositions] = useState<Record<string, Position>>({});
+
+  // Get current position for a node (custom if exists, otherwise initial)
+  const getNodePosition = useCallback((title: string): Position => {
+    return customPositions[title] || initialPositions[title] || { x: 200, y: 180 };
+  }, [customPositions, initialPositions]);
+
+  // Reset all positions to initial layout
+  const resetPositions = () => {
+    setCustomPositions({});
+  };
+
+  // Handle drag
+  const handleDrag = useCallback((title: string, event: any, info: any) => {
+    if (!svgRef.current) return;
+    
+    // Get SVG dimensions for coordinate conversion
+    const svg = svgRef.current;
+    const rect = svg.getBoundingClientRect();
+    const viewBox = svg.viewBox.baseVal;
+    
+    // Convert screen coordinates to SVG coordinates
+    const scaleX = viewBox.width / rect.width;
+    const scaleY = viewBox.height / rect.height;
+    
+    const currentPos = getNodePosition(title);
+    const newX = currentPos.x + info.delta.x * scaleX;
+    const newY = currentPos.y + info.delta.y * scaleY;
+    
+    // Clamp to viewBox bounds with padding
+    const padding = 40;
+    const clampedX = Math.max(padding, Math.min(viewBox.width - padding, newX));
+    const clampedY = Math.max(padding, Math.min(viewBox.height - padding, newY));
+    
+    setCustomPositions(prev => ({
+      ...prev,
+      [title]: { x: clampedX, y: clampedY }
+    }));
+  }, [getNodePosition]);
+
+  // Find connections between nodes using current positions
   const connectionLines = useMemo(() => {
     return connections.map((conn, index) => {
-      const fromNode = nodePositions.find(n => 
-        n.theme.title.toLowerCase().includes(conn.from.toLowerCase()) ||
-        conn.from.toLowerCase().includes(n.theme.title.toLowerCase())
+      const fromTheme = themes.find(t => 
+        t.title.toLowerCase().includes(conn.from.toLowerCase()) ||
+        conn.from.toLowerCase().includes(t.title.toLowerCase())
       );
-      const toNode = nodePositions.find(n => 
-        n.theme.title.toLowerCase().includes(conn.to.toLowerCase()) ||
-        conn.to.toLowerCase().includes(n.theme.title.toLowerCase())
+      const toTheme = themes.find(t => 
+        t.title.toLowerCase().includes(conn.to.toLowerCase()) ||
+        conn.to.toLowerCase().includes(t.title.toLowerCase())
       );
 
-      if (fromNode && toNode) {
+      if (fromTheme && toTheme) {
+        const fromPos = getNodePosition(fromTheme.title);
+        const toPos = getNodePosition(toTheme.title);
         return {
-          x1: fromNode.x,
-          y1: fromNode.y,
-          x2: toNode.x,
-          y2: toNode.y,
+          x1: fromPos.x,
+          y1: fromPos.y,
+          x2: toPos.x,
+          y2: toPos.y,
           relationship: conn.relationship,
           index,
         };
       }
       return null;
     }).filter(Boolean);
-  }, [connections, nodePositions]);
+  }, [connections, themes, getNodePosition, customPositions]);
 
   // Color palette for nodes
   const nodeColors = [
@@ -80,6 +127,8 @@ const MindMapVisualization: React.FC<MindMapVisualizationProps> = ({ themes, con
     'hsl(340, 65%, 55%)',
   ];
 
+  const hasCustomPositions = Object.keys(customPositions).length > 0;
+
   if (themes.length === 0) return null;
 
   return (
@@ -87,7 +136,27 @@ const MindMapVisualization: React.FC<MindMapVisualizationProps> = ({ themes, con
       {/* Background glow */}
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
       
+      {/* Controls */}
+      <div className="absolute top-2 right-2 z-10 flex gap-2">
+        {hasCustomPositions && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={resetPositions}
+            className="h-8 px-2 text-xs bg-card/80 backdrop-blur hover:bg-card"
+          >
+            <RotateCcw className="w-3 h-3 mr-1" />
+            Reset
+          </Button>
+        )}
+        <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-card/80 backdrop-blur text-xs text-muted-foreground">
+          <Move className="w-3 h-3" />
+          Drag nodes
+        </div>
+      </div>
+
       <svg
+        ref={svgRef}
         viewBox="0 0 400 360"
         className="w-full h-full"
         style={{ overflow: 'visible' }}
@@ -108,6 +177,13 @@ const MindMapVisualization: React.FC<MindMapVisualizationProps> = ({ themes, con
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+          <filter id="glowDrag" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="8" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
           {nodeColors.map((color, i) => (
             <linearGradient key={i} id={`nodeGradient${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor={color} stopOpacity="0.9" />
@@ -116,7 +192,7 @@ const MindMapVisualization: React.FC<MindMapVisualizationProps> = ({ themes, con
           ))}
         </defs>
 
-        {/* Connection lines */}
+        {/* Connection lines between themes */}
         {connectionLines.map((line, index) => {
           if (!line) return null;
           const isHovered = hoveredConnection === index;
@@ -197,7 +273,7 @@ const MindMapVisualization: React.FC<MindMapVisualizationProps> = ({ themes, con
           x={200}
           y={184}
           textAnchor="middle"
-          className="text-xs font-medium fill-primary"
+          className="text-xs font-medium fill-primary pointer-events-none"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
@@ -206,14 +282,45 @@ const MindMapVisualization: React.FC<MindMapVisualizationProps> = ({ themes, con
           Core
         </motion.text>
 
-        {/* Theme nodes */}
-        {nodePositions.map((node, index) => {
-          const isSelected = selectedNode === node.theme.title;
+        {/* Lines from center to theme nodes */}
+        {themes.map((theme, index) => {
+          const pos = getNodePosition(theme.title);
+          const color = nodeColors[index % nodeColors.length];
+          
+          return (
+            <motion.line
+              key={`line-${theme.title}`}
+              x1={200}
+              y1={180}
+              x2={pos.x}
+              y2={pos.y}
+              stroke={color}
+              strokeWidth={2}
+              strokeOpacity={0.3}
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.8, delay: 0.3 + index * 0.1 }}
+            />
+          );
+        })}
+
+        {/* Theme nodes (draggable) */}
+        {themes.map((theme, index) => {
+          const pos = getNodePosition(theme.title);
+          const isSelected = selectedNode === theme.title;
+          const isDragging = draggingNode === theme.title;
           const color = nodeColors[index % nodeColors.length];
           
           return (
             <motion.g
-              key={node.theme.title}
+              key={theme.title}
+              drag
+              dragMomentum={false}
+              dragElastic={0}
+              onDrag={(event, info) => handleDrag(theme.title, event, info)}
+              onDragStart={() => setDraggingNode(theme.title)}
+              onDragEnd={() => setDraggingNode(null)}
+              onClick={() => !isDragging && setSelectedNode(isSelected ? null : theme.title)}
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ 
@@ -222,90 +329,77 @@ const MindMapVisualization: React.FC<MindMapVisualizationProps> = ({ themes, con
                 type: "spring",
                 stiffness: 200 
               }}
-              onClick={() => setSelectedNode(isSelected ? null : node.theme.title)}
-              className="cursor-pointer"
+              style={{ 
+                cursor: isDragging ? 'grabbing' : 'grab',
+                touchAction: 'none'
+              }}
             >
-              {/* Connection line to center */}
-              <motion.line
-                x1={200}
-                y1={180}
-                x2={node.x}
-                y2={node.y}
-                stroke={color}
-                strokeWidth={2}
-                strokeOpacity={0.3}
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.8, delay: 0.3 + index * 0.1 }}
-              />
-
               {/* Outer glow ring */}
               <motion.circle
-                cx={node.x}
-                cy={node.y}
-                r={isSelected ? 48 : 40}
+                cx={pos.x}
+                cy={pos.y}
+                r={isDragging ? 52 : isSelected ? 48 : 40}
                 fill="none"
                 stroke={color}
-                strokeWidth={1}
-                strokeOpacity={isSelected ? 0.4 : 0.15}
+                strokeWidth={isDragging ? 2 : 1}
+                strokeOpacity={isDragging ? 0.6 : isSelected ? 0.4 : 0.15}
                 animate={{
-                  r: isSelected ? [48, 52, 48] : 40,
-                  strokeOpacity: isSelected ? [0.4, 0.6, 0.4] : 0.15,
+                  r: isDragging ? 52 : isSelected ? [48, 52, 48] : 40,
+                  strokeOpacity: isDragging ? 0.6 : isSelected ? [0.4, 0.6, 0.4] : 0.15,
                 }}
                 transition={{
                   duration: 2,
-                  repeat: isSelected ? Infinity : 0,
+                  repeat: isSelected && !isDragging ? Infinity : 0,
                   ease: "easeInOut"
                 }}
               />
 
               {/* Main node circle */}
               <motion.circle
-                cx={node.x}
-                cy={node.y}
+                cx={pos.x}
+                cy={pos.y}
                 r={35}
                 fill={`url(#nodeGradient${index % nodeColors.length})`}
-                filter={isSelected ? "url(#glowStrong)" : "url(#glow)"}
-                whileHover={{ scale: 1.1 }}
+                filter={isDragging ? "url(#glowDrag)" : isSelected ? "url(#glowStrong)" : "url(#glow)"}
                 animate={{
-                  scale: isSelected ? 1.15 : 1,
+                  scale: isDragging ? 1.2 : isSelected ? 1.15 : 1,
                 }}
                 transition={{ type: "spring", stiffness: 300 }}
               />
 
               {/* Node title */}
               <text
-                x={node.x}
-                y={node.y}
+                x={pos.x}
+                y={pos.y}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="font-medium fill-background pointer-events-none"
+                className="font-medium fill-background pointer-events-none select-none"
                 style={{ fontSize: '11px' }}
               >
-                {node.theme.title.length > 12 
-                  ? node.theme.title.substring(0, 10) + '...' 
-                  : node.theme.title}
+                {theme.title.length > 12 
+                  ? theme.title.substring(0, 10) + '...' 
+                  : theme.title}
               </text>
 
               {/* Thought count badge */}
-              {node.theme.thoughts && node.theme.thoughts.length > 0 && (
-                <g>
+              {theme.thoughts && theme.thoughts.length > 0 && (
+                <g className="pointer-events-none">
                   <circle
-                    cx={node.x + 25}
-                    cy={node.y - 25}
+                    cx={pos.x + 25}
+                    cy={pos.y - 25}
                     r={10}
                     fill="hsl(var(--card))"
                     stroke={color}
                     strokeWidth={2}
                   />
                   <text
-                    x={node.x + 25}
-                    y={node.y - 21}
+                    x={pos.x + 25}
+                    y={pos.y - 21}
                     textAnchor="middle"
-                    className="text-xs font-bold fill-foreground"
+                    className="text-xs font-bold fill-foreground select-none"
                     style={{ fontSize: '9px' }}
                   >
-                    {node.theme.thoughts.length}
+                    {theme.thoughts.length}
                   </text>
                 </g>
               )}
@@ -315,7 +409,7 @@ const MindMapVisualization: React.FC<MindMapVisualizationProps> = ({ themes, con
       </svg>
 
       {/* Selected node details */}
-      {selectedNode && (
+      {selectedNode && !draggingNode && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -323,10 +417,10 @@ const MindMapVisualization: React.FC<MindMapVisualizationProps> = ({ themes, con
           className="absolute bottom-0 left-0 right-0 p-4 bg-card/95 backdrop-blur rounded-xl border border-border/50"
         >
           <h4 className="font-medium text-foreground mb-1">
-            {nodePositions.find(n => n.theme.title === selectedNode)?.theme.title}
+            {themes.find(t => t.title === selectedNode)?.title}
           </h4>
           <p className="text-sm text-muted-foreground">
-            {nodePositions.find(n => n.theme.title === selectedNode)?.theme.description}
+            {themes.find(t => t.title === selectedNode)?.description}
           </p>
         </motion.div>
       )}
