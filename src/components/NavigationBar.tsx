@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, BookOpen, RotateCcw, Sparkles } from 'lucide-react';
+import { Home, BookOpen, RotateCcw, Sparkles, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface NavigationBarProps {
@@ -10,6 +10,7 @@ interface NavigationBarProps {
 const NavigationBar: React.FC<NavigationBarProps> = ({ activeView, onNavigate }) => {
   const navItems = [
     { id: 'home', icon: Home, label: 'Home' },
+    { id: 'untangle', icon: Brain, label: 'Untangle' },
     { id: 'journal', icon: BookOpen, label: 'Journal' },
     { id: 'reset', icon: RotateCcw, label: 'Reset' },
     { id: 'pricing', icon: Sparkles, label: 'Plus' },

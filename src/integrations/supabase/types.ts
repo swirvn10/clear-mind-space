@@ -94,6 +94,30 @@ export type Database = {
         }
         Relationships: []
       }
+      thought_untangles: {
+        Row: {
+          analysis: Json | null
+          created_at: string
+          id: string
+          raw_input: string
+          user_id: string
+        }
+        Insert: {
+          analysis?: Json | null
+          created_at?: string
+          id?: string
+          raw_input: string
+          user_id: string
+        }
+        Update: {
+          analysis?: Json | null
+          created_at?: string
+          id?: string
+          raw_input?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
