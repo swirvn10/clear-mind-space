@@ -6,10 +6,11 @@ import VoiceChatView from '@/components/VoiceChatView';
 import JournalView from '@/components/JournalView';
 import ResetView from '@/components/ResetView';
 import PricingView from '@/components/PricingView';
+import ThoughtUntanglerView from '@/components/ThoughtUntanglerView';
 import NavigationBar from '@/components/NavigationBar';
 import { useAuth } from '@/hooks/useAuth';
 
-type View = 'home' | 'chat' | 'voiceChat' | 'journal' | 'reset' | 'pricing';
+type View = 'home' | 'chat' | 'voiceChat' | 'journal' | 'reset' | 'pricing' | 'untangle';
 type ChatMode = 'text' | 'voice';
 
 const Index = () => {
@@ -65,6 +66,19 @@ const Index = () => {
       return null;
     }
     return <VoiceChatView onBack={handleBackFromChat} />;
+  }
+
+  if (currentView === 'untangle') {
+    if (!user) {
+      navigate('/auth');
+      return null;
+    }
+    return (
+      <div className="min-h-screen bg-background">
+        <ThoughtUntanglerView />
+        <NavigationBar activeView={currentView} onNavigate={handleNavigate} />
+      </div>
+    );
   }
 
   return (
