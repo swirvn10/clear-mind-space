@@ -5,15 +5,16 @@ import ChatView from '@/components/ChatView';
 import VoiceChatView from '@/components/VoiceChatView';
 import JournalView from '@/components/JournalView';
 import ResetView from '@/components/ResetView';
-import PricingView from '@/components/PricingView';
+import InsightsView from '@/components/InsightsView';
 import ThoughtUntanglerView from '@/components/ThoughtUntanglerView';
 import OnboardingView from '@/components/OnboardingView';
 import NavigationBar from '@/components/NavigationBar';
 import { useAuth } from '@/hooks/useAuth';
 import { useOnboarding } from '@/hooks/useOnboarding';
+import { useReminders } from '@/hooks/useReminders';
 import { toast } from 'sonner';
 
-type View = 'home' | 'chat' | 'voiceChat' | 'journal' | 'reset' | 'pricing' | 'untangle';
+type View = 'home' | 'chat' | 'voiceChat' | 'journal' | 'reset' | 'insights' | 'untangle';
 type ChatMode = 'text' | 'voice';
 
 const Index = () => {
@@ -22,6 +23,9 @@ const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const { isOnboardingComplete, loading: onboardingLoading, completeOnboarding } = useOnboarding();
   const navigate = useNavigate();
+  
+  // Initialize reminders (will show toast if reminder is due)
+  useReminders();
 
   const handleStartChat = (mode: ChatMode) => {
     if (!user) {
@@ -103,7 +107,7 @@ const Index = () => {
       {currentView === 'home' && <HomeView onStartChat={handleStartChat} />}
       {currentView === 'journal' && <JournalView />}
       {currentView === 'reset' && <ResetView />}
-      {currentView === 'pricing' && <PricingView />}
+      {currentView === 'insights' && <InsightsView />}
       
       <NavigationBar activeView={currentView} onNavigate={handleNavigate} />
     </div>
