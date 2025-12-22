@@ -128,7 +128,9 @@ export type Database = {
           display_name: string | null
           goals: string[] | null
           id: string
+          last_active_date: string | null
           onboarding_completed: boolean | null
+          streak_count: number | null
           updated_at: string
         }
         Insert: {
@@ -137,7 +139,9 @@ export type Database = {
           display_name?: string | null
           goals?: string[] | null
           id: string
+          last_active_date?: string | null
           onboarding_completed?: boolean | null
+          streak_count?: number | null
           updated_at?: string
         }
         Update: {
@@ -146,7 +150,9 @@ export type Database = {
           display_name?: string | null
           goals?: string[] | null
           id?: string
+          last_active_date?: string | null
           onboarding_completed?: boolean | null
+          streak_count?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -180,7 +186,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_user_streak: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never
