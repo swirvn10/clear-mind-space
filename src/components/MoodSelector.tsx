@@ -7,6 +7,7 @@ interface MoodSelectorProps {
   selectedMood?: number | null;
   showNote?: boolean;
   compact?: boolean;
+  size?: 'sm' | 'md' | 'lg';
 }
 
 const moods = [
@@ -22,6 +23,7 @@ const MoodSelector: React.FC<MoodSelectorProps> = ({
   selectedMood,
   showNote = false,
   compact = false,
+  size = 'md',
 }) => {
   const [selected, setSelected] = useState<number | null>(selectedMood ?? null);
   const [note, setNote] = useState('');
@@ -44,14 +46,17 @@ const MoodSelector: React.FC<MoodSelectorProps> = ({
     }
   };
 
+  const sizeClasses = {
+    sm: { emoji: 'text-xl', container: 'p-1.5', gap: 'gap-1', label: 'text-[10px]' },
+    md: { emoji: 'text-3xl', container: 'p-2', gap: 'gap-3', label: 'text-xs' },
+    lg: { emoji: 'text-4xl', container: 'p-3', gap: 'gap-4', label: 'text-sm' },
+  };
+
+  const currentSize = compact ? sizeClasses.sm : sizeClasses[size];
+
   return (
     <div className="w-full">
-      <div
-        className={cn(
-          'flex justify-center gap-2',
-          compact ? 'gap-1' : 'gap-3'
-        )}
-      >
+      <div className={cn('flex justify-center', currentSize.gap)}>
         {moods.map((mood) => (
           <motion.button
             key={mood.value}
@@ -59,18 +64,16 @@ const MoodSelector: React.FC<MoodSelectorProps> = ({
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             className={cn(
-              'flex flex-col items-center transition-all rounded-xl p-2',
-              compact ? 'text-2xl' : 'text-3xl',
+              'flex flex-col items-center transition-all rounded-xl',
+              currentSize.container,
               selected === mood.value
                 ? 'bg-primary/20 ring-2 ring-primary'
                 : 'hover:bg-muted/50'
             )}
           >
-            <span className={compact ? 'text-xl' : 'text-3xl'}>
-              {mood.emoji}
-            </span>
+            <span className={currentSize.emoji}>{mood.emoji}</span>
             {!compact && (
-              <span className="text-xs text-muted-foreground mt-1">
+              <span className={cn('text-muted-foreground mt-1', currentSize.label)}>
                 {mood.label}
               </span>
             )}
