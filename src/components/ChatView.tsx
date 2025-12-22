@@ -1,14 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Mic, MicOff } from 'lucide-react';
+import { ArrowLeft, Send, Mic, MicOff, Menu, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
+import { useAuth } from '@/hooks/useAuth';
+import { useConversations } from '@/hooks/useConversations';
+import ConversationSidebar from './ConversationSidebar';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ChatViewProps {
   mode: 'text' | 'voice';
@@ -18,19 +16,26 @@ interface ChatViewProps {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: "What's been weighing on you today?",
-      timestamp: new Date(),
-    },
-  ]);
+  const { user, signOut } = useAuth();
+  const {
+    conversations,
+    currentConversation,
+    messages,
+    createConversation,
+    selectConversation,
+    addMessage,
+    updateLastMessage,
+    finalizeAssistantMessage,
+    deleteConversation,
+  } = useConversations();
+
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const isMobile = useIsMobile();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,6 +44,13 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Create initial conversation if none exists
+  useEffect(() => {
+    if (user && conversations.length === 0 && !currentConversation) {
+      createConversation();
+    }
+  }, [user, conversations.length, currentConversation, createConversation]);
 
   const streamChat = async (
     chatMessages: { role: string; content: string }[],
@@ -126,50 +138,40 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date(),
-    };
+    let activeConversation = currentConversation;
+    
+    // Create conversation if none exists
+    if (!activeConversation) {
+      activeConversation = await createConversation();
+      if (!activeConversation) return;
+    }
 
-    setMessages((prev) => [...prev, userMessage]);
+    const userContent = input.trim();
     setInput('');
     setIsLoading(true);
 
+    // Save user message to database
+    await addMessage('user', userContent);
+
     let assistantContent = "";
-    
-    const upsertAssistant = (chunk: string) => {
-      assistantContent += chunk;
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last?.role === "assistant" && last.id.startsWith("streaming-")) {
-          return prev.map((m, i) =>
-            i === prev.length - 1 ? { ...m, content: assistantContent } : m
-          );
-        }
-        return [
-          ...prev,
-          {
-            id: `streaming-${Date.now()}`,
-            role: "assistant" as const,
-            content: assistantContent,
-            timestamp: new Date(),
-          },
-        ];
-      });
-    };
 
     try {
-      const chatHistory = [...messages, userMessage].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      const chatHistory = [
+        ...messages.map((m) => ({ role: m.role, content: m.content })),
+        { role: 'user', content: userContent },
+      ];
 
       await streamChat(
         chatHistory,
-        (chunk) => upsertAssistant(chunk),
-        () => setIsLoading(false)
+        (chunk) => {
+          assistantContent += chunk;
+          updateLastMessage(assistantContent);
+        },
+        async () => {
+          // Save final assistant message to database
+          await finalizeAssistantMessage(assistantContent);
+          setIsLoading(false);
+        }
       );
     } catch (error) {
       console.error("Chat error:", error);
@@ -189,98 +191,154 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
     setIsListening(!isListening);
   };
 
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="flex items-center justify-between px-4 py-4 max-w-2xl mx-auto">
-          <Button variant="ghost" size="icon" onClick={onBack}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-sm text-muted-foreground">
-              {mode === 'voice' ? 'Voice mode' : 'Text mode'}
-            </span>
-          </div>
-          <div className="w-10" />
-        </div>
-      </header>
+  const handleNewConversation = async () => {
+    await createConversation();
+    setSidebarOpen(false);
+  };
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 pb-32">
-        <div className="max-w-2xl mx-auto space-y-6">
-          {messages.map((message, index) => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div
-                className={`max-w-[85%] rounded-2xl px-5 py-4 ${
-                  message.role === 'user'
-                    ? 'bg-primary text-primary-foreground rounded-br-md'
-                    : 'bg-card border border-border/50 rounded-bl-md'
-                }`}
-              >
-                <p className="text-body leading-relaxed whitespace-pre-wrap">{message.content}</p>
-              </div>
+  const handleSelectConversation = async (conv: typeof conversations[0]) => {
+    await selectConversation(conv);
+    setSidebarOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    onBack();
+  };
+
+  const sidebarContent = (
+    <ConversationSidebar
+      conversations={conversations}
+      currentConversation={currentConversation}
+      onSelect={handleSelectConversation}
+      onNew={handleNewConversation}
+      onDelete={deleteConversation}
+    />
+  );
+
+  // Display messages with initial greeting if empty
+  const displayMessages = messages.length === 0 
+    ? [{ id: 'welcome', role: 'assistant' as const, content: "What's been weighing on you today?", created_at: new Date().toISOString() }]
+    : messages;
+
+  return (
+    <div className="min-h-screen flex bg-background">
+      {/* Desktop sidebar */}
+      {!isMobile && (
+        <div className="w-72 shrink-0">
+          {sidebarContent}
+        </div>
+      )}
+
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center gap-2">
+              {isMobile && (
+                <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <Menu className="w-5 h-5" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="p-0 w-72">
+                    {sidebarContent}
+                  </SheetContent>
+                </Sheet>
+              )}
+              <Button variant="ghost" size="icon" onClick={onBack}>
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
             </div>
-          ))}
-          
-          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-            <div className="flex justify-start animate-fade-in">
-              <div className="bg-card border border-border/50 rounded-2xl rounded-bl-md px-5 py-4">
-                <div className="flex gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-sm text-muted-foreground">
+                {mode === 'voice' ? 'Voice mode' : 'Text mode'}
+              </span>
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleSignOut}>
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
+        </header>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 pb-32">
+          <div className="max-w-2xl mx-auto space-y-6">
+            {displayMessages.map((message, index) => (
+              <div
+                key={message.id}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div
+                  className={`max-w-[85%] rounded-2xl px-5 py-4 ${
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground rounded-br-md'
+                      : 'bg-card border border-border/50 rounded-bl-md'
+                  }`}
+                >
+                  <p className="text-body leading-relaxed whitespace-pre-wrap">{message.content}</p>
                 </div>
               </div>
-            </div>
-          )}
-          
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-
-      {/* Input area */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-border/50 bg-background/95 backdrop-blur-xl p-4">
-        <div className="max-w-2xl mx-auto flex items-end gap-3">
-          {mode === 'voice' && (
-            <Button
-              variant={isListening ? 'default' : 'soft'}
-              size="icon"
-              onClick={toggleListening}
-              className={isListening ? 'glow-effect' : ''}
-            >
-              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-            </Button>
-          )}
-          
-          <div className="flex-1 relative">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Share what's on your mind..."
-              rows={1}
-              disabled={isLoading}
-              className="w-full resize-none rounded-xl border border-border/50 bg-card px-4 py-3 text-body placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all disabled:opacity-50"
-              style={{ minHeight: '48px', maxHeight: '120px' }}
-            />
+            ))}
+            
+            {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+              <div className="flex justify-start animate-fade-in">
+                <div className="bg-card border border-border/50 rounded-2xl rounded-bl-md px-5 py-4">
+                  <div className="flex gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
           </div>
-          
-          <Button
-            variant="default"
-            size="icon"
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            className="shrink-0"
-          >
-            <Send className="w-5 h-5" />
-          </Button>
+        </div>
+
+        {/* Input area */}
+        <div className="fixed bottom-0 left-0 right-0 border-t border-border/50 bg-background/95 backdrop-blur-xl p-4">
+          <div className="max-w-2xl mx-auto flex items-end gap-3" style={{ marginLeft: isMobile ? 'auto' : 'calc(50% + 144px - 336px)' }}>
+            {mode === 'voice' && (
+              <Button
+                variant={isListening ? 'default' : 'soft'}
+                size="icon"
+                onClick={toggleListening}
+                className={isListening ? 'glow-effect' : ''}
+              >
+                {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </Button>
+            )}
+            
+            <div className="flex-1 relative">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Share what's on your mind..."
+                rows={1}
+                disabled={isLoading}
+                className="w-full resize-none rounded-xl border border-border/50 bg-card px-4 py-3 text-body placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all disabled:opacity-50"
+                style={{ minHeight: '48px', maxHeight: '120px' }}
+              />
+            </div>
+            
+            <Button
+              variant="default"
+              size="icon"
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              className="shrink-0"
+            >
+              <Send className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
