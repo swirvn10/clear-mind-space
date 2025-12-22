@@ -6,6 +6,7 @@ import VoiceChatView from '@/components/VoiceChatView';
 import JournalView from '@/components/JournalView';
 import ResetView from '@/components/ResetView';
 import InsightsView from '@/components/InsightsView';
+import SettingsView from '@/components/SettingsView';
 import ThoughtUntanglerView from '@/components/ThoughtUntanglerView';
 import OnboardingView from '@/components/OnboardingView';
 import NavigationBar from '@/components/NavigationBar';
@@ -14,7 +15,7 @@ import { useOnboarding } from '@/hooks/useOnboarding';
 import { useReminders } from '@/hooks/useReminders';
 import { toast } from 'sonner';
 
-type View = 'home' | 'chat' | 'voiceChat' | 'journal' | 'reset' | 'insights' | 'untangle';
+type View = 'home' | 'chat' | 'voiceChat' | 'journal' | 'reset' | 'insights' | 'untangle' | 'settings';
 type ChatMode = 'text' | 'voice';
 
 const Index = () => {
@@ -100,6 +101,10 @@ const Index = () => {
         <NavigationBar activeView={currentView} onNavigate={handleNavigate} />
       </div>
     );
+  }
+
+  if (currentView === 'settings') {
+    return <SettingsView onBack={() => setCurrentView('home')} />;
   }
 
   return (

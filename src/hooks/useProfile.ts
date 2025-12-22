@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -6,6 +6,11 @@ interface Profile {
   displayName: string | null;
   goals: string[] | null;
   avatarUrl: string | null;
+}
+
+interface UpdateProfileData {
+  displayName?: string;
+  avatarUrl?: string;
 }
 
 export const useProfile = () => {
@@ -45,5 +50,31 @@ export const useProfile = () => {
     fetchProfile();
   }, [user]);
 
-  return { profile, loading };
+  const updateProfile = useCallback(async (data: UpdateProfileData) => {
+    if (!user) return;
+
+    const updateData: Record<string, string | null> = {};
+    if (data.displayName !== undefined) {
+      updateData.display_name = data.displayName || null;
+    }
+    if (data.avatarUrl !== undefined) {
+      updateData.avatar_url = data.avatarUrl || null;
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(updateData)
+      .eq('id', user.id);
+
+    if (error) throw error;
+
+    // Update local state
+    setProfile(prev => prev ? {
+      ...prev,
+      displayName: data.displayName ?? prev.displayName,
+      avatarUrl: data.avatarUrl ?? prev.avatarUrl,
+    } : null);
+  }, [user]);
+
+  return { profile, loading, updateProfile };
 };
