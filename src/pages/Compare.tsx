@@ -1,5 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import { motion, useInView } from 'framer-motion';
 import { 
   Check, 
   X, 
@@ -7,13 +8,13 @@ import {
   Mic, 
   Brain, 
   Shield, 
-  Zap, 
   Heart,
   ArrowRight,
   Star,
   Clock,
   MessageCircle,
-  TrendingUp
+  TrendingUp,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +28,65 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
+
+// Animation variants
+const fadeInUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0 }
+};
+
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 }
+};
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: { opacity: 1, scale: 1 }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const floatAnimation = {
+  y: [0, -6, 0],
+  transition: {
+    duration: 2,
+    repeat: Infinity,
+    ease: "easeInOut" as const
+  }
+};
+
+// Scroll-triggered section wrapper
+const AnimatedSection: React.FC<{ 
+  children: React.ReactNode; 
+  className?: string;
+  delay?: number;
+}> = ({ children, className, delay = 0 }) => {
+  const ref = React.useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <motion.section
+      ref={ref}
+      initial="hidden"
+      animate={isInView ? "visible" : "hidden"}
+      variants={fadeInUp}
+      transition={{ duration: 0.6, delay, ease: "easeOut" }}
+      className={className}
+    >
+      {children}
+    </motion.section>
+  );
+};
 
 const Compare: React.FC = () => {
   const navigate = useNavigate();
@@ -116,11 +176,21 @@ const Compare: React.FC = () => {
     { category: 'Privacy', feature: 'Anonymous Option', clearmind: true, calm: false, headspace: false, wysa: true, betterhelp: false },
   ];
 
+  const trustFeatures = [
+    { icon: Shield, title: 'Privacy First', description: 'End-to-end encryption. Your thoughts stay yours.' },
+    { icon: Heart, title: 'No Data Selling', description: 'We never sell your data. Ever. That\'s a promise.' },
+    { icon: Clock, title: 'Available 24/7', description: 'Your AI companion is always ready to listen.' },
+  ];
+
   const categories = [...new Set(detailedComparison.map(item => item.category))];
 
   const renderCellValue = (value: boolean | string, isHighlighted: boolean = false) => {
     if (value === true) {
-      return <Check className={`w-5 h-5 mx-auto ${isHighlighted ? 'text-primary' : 'text-green-500'}`} />;
+      return (
+        <motion.div whileHover={{ scale: 1.2 }} transition={{ type: "spring", stiffness: 400 }}>
+          <Check className={`w-5 h-5 mx-auto ${isHighlighted ? 'text-primary' : 'text-green-500'}`} />
+        </motion.div>
+      );
     }
     if (value === false) {
       return <X className="w-5 h-5 mx-auto text-muted-foreground/40" />;
@@ -137,135 +207,299 @@ const Compare: React.FC = () => {
         <link rel="canonical" href="https://clearmind.app/compare" />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background overflow-hidden">
         {/* Hero Section */}
-        <section className="px-6 pt-16 pb-12 bg-gradient-to-b from-primary/5 to-transparent">
-          <div className="max-w-4xl mx-auto text-center">
-            <Badge variant="secondary" className="mb-4">
-              <Star className="w-3 h-3 mr-1" />
-              #1 AI Mental Wellness Companion
-            </Badge>
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 tracking-tight">
+        <section className="px-6 pt-16 pb-12 bg-gradient-to-b from-primary/5 to-transparent relative">
+          {/* Animated background elements */}
+          <motion.div 
+            className="absolute top-20 left-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl"
+            animate={{ 
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3]
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div 
+            className="absolute bottom-0 right-10 w-96 h-96 bg-accent/5 rounded-full blur-3xl"
+            animate={{ 
+              scale: [1.2, 1, 1.2],
+              opacity: [0.2, 0.4, 0.2]
+            }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          />
+
+          <motion.div 
+            className="max-w-4xl mx-auto text-center relative z-10"
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+          >
+            <motion.div variants={scaleIn} transition={{ duration: 0.5 }}>
+              <Badge variant="secondary" className="mb-4 hover:scale-105 transition-transform cursor-default">
+                <Star className="w-3 h-3 mr-1" />
+                #1 AI Mental Wellness Companion
+              </Badge>
+            </motion.div>
+            
+            <motion.h1 
+              className="text-4xl md:text-5xl font-bold text-foreground mb-4 tracking-tight"
+              variants={fadeInUp}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
               Why Choose ClearMind?
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            </motion.h1>
+            
+            <motion.p 
+              className="text-lg text-muted-foreground max-w-2xl mx-auto"
+              variants={fadeInUp}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
               The only mental wellness app that actually listens to you. 
               Compare features, pricing, and see why users are switching to ClearMind.
-            </p>
-          </div>
+            </motion.p>
+
+            {/* Scroll indicator */}
+            <motion.div 
+              className="mt-12"
+              variants={fadeIn}
+              transition={{ delay: 0.8 }}
+            >
+              <motion.div
+                animate={{ y: [0, 8, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                className="flex flex-col items-center text-muted-foreground/50"
+              >
+                <span className="text-xs mb-1">Scroll to explore</span>
+                <ChevronDown className="w-5 h-5" />
+              </motion.div>
+            </motion.div>
+          </motion.div>
         </section>
 
         {/* Unique Features */}
-        <section className="px-6 py-16">
+        <AnimatedSection className="px-6 py-16">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl font-semibold text-foreground text-center mb-3">
-              What Makes Us Different
-            </h2>
-            <p className="text-muted-foreground text-center mb-10 max-w-xl mx-auto">
-              Features you won't find anywhere else
-            </p>
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={staggerContainer}
+              className="text-center mb-10"
+            >
+              <motion.h2 
+                variants={fadeInUp}
+                className="text-2xl font-semibold text-foreground mb-3"
+              >
+                What Makes Us Different
+              </motion.h2>
+              <motion.p 
+                variants={fadeInUp}
+                className="text-muted-foreground max-w-xl mx-auto"
+              >
+                Features you won't find anywhere else
+              </motion.p>
+            </motion.div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              {uniqueFeatures.map((feature) => (
-                <Card key={feature.title} className="border-border/50 hover:border-primary/30 transition-colors">
-                  <CardContent className="pt-6">
-                    <div className="flex gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <feature.icon className="w-6 h-6 text-primary" />
+            <motion.div 
+              className="grid md:grid-cols-2 gap-6"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+              variants={staggerContainer}
+            >
+              {uniqueFeatures.map((feature, index) => (
+                <motion.div
+                  key={feature.title}
+                  variants={fadeInUp}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                >
+                  <Card className="border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group h-full">
+                    <CardContent className="pt-6">
+                      <div className="flex gap-4">
+                        <motion.div 
+                          className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors"
+                          whileHover={{ scale: 1.1, rotate: 5 }}
+                          transition={{ type: "spring", stiffness: 400 }}
+                        >
+                          <feature.icon className="w-6 h-6 text-primary" />
+                        </motion.div>
+                        <div>
+                          <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
+                            {feature.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-2">{feature.description}</p>
+                          <p className="text-xs text-muted-foreground/60 italic">
+                            vs competitors: {feature.competitors}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground mb-1">{feature.title}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">{feature.description}</p>
-                        <p className="text-xs text-muted-foreground/60 italic">
-                          vs competitors: {feature.competitors}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
-        </section>
+        </AnimatedSection>
 
         {/* Pricing Section */}
-        <section className="px-6 py-16 bg-muted/20">
+        <AnimatedSection className="px-6 py-16 bg-muted/20">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-semibold text-foreground text-center mb-3">
-              Simple, Honest Pricing
-            </h2>
-            <p className="text-muted-foreground text-center mb-10">
-              No hidden features. No mid-conversation paywalls.
-            </p>
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={staggerContainer}
+              className="text-center mb-10"
+            >
+              <motion.h2 
+                variants={fadeInUp}
+                className="text-2xl font-semibold text-foreground mb-3"
+              >
+                Simple, Honest Pricing
+              </motion.h2>
+              <motion.p 
+                variants={fadeInUp}
+                className="text-muted-foreground"
+              >
+                No hidden features. No mid-conversation paywalls.
+              </motion.p>
+            </motion.div>
 
-            <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-              {pricingTiers.map((tier) => (
-                <Card 
-                  key={tier.name} 
-                  className={tier.popular ? 'border-primary/40 bg-gradient-to-b from-primary/5 to-transparent relative' : ''}
+            <motion.div 
+              className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={staggerContainer}
+            >
+              {pricingTiers.map((tier, index) => (
+                <motion.div
+                  key={tier.name}
+                  variants={scaleIn}
+                  transition={{ duration: 0.5, delay: index * 0.15 }}
+                  whileHover={{ y: -5 }}
                 >
-                  {tier.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-primary text-primary-foreground">
-                        <Sparkles className="w-3 h-3 mr-1" />
-                        Most Popular
-                      </Badge>
-                    </div>
-                  )}
-                  <CardHeader className="pt-8">
-                    <CardTitle className="flex items-center gap-2">
-                      {tier.popular && <Sparkles className="w-5 h-5 text-accent" />}
-                      {tier.name}
-                    </CardTitle>
-                    <div className="mt-2">
-                      <span className="text-4xl font-bold text-foreground">{tier.price}</span>
-                      <span className="text-muted-foreground">{tier.period}</span>
-                    </div>
-                    {tier.annual && (
-                      <p className="text-sm text-muted-foreground">{tier.annual}</p>
-                    )}
-                    <p className="text-sm text-muted-foreground mt-2">{tier.description}</p>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-3 mb-6">
-                      {tier.features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-3 text-sm text-foreground/80">
-                          <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button 
-                      variant={tier.popular ? 'glow' : 'outline'} 
-                      className="w-full"
-                      onClick={() => navigate('/auth')}
-                    >
-                      {tier.cta}
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                  <Card 
+                    className={`h-full transition-all duration-300 ${
+                      tier.popular 
+                        ? 'border-primary/40 bg-gradient-to-b from-primary/5 to-transparent relative shadow-lg shadow-primary/10' 
+                        : 'hover:border-border'
+                    }`}
+                  >
                     {tier.popular && (
-                      <p className="text-center text-xs text-muted-foreground mt-3">
-                        7-day free trial • Cancel anytime
-                      </p>
+                      <motion.div 
+                        className="absolute -top-3 left-1/2 -translate-x-1/2"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                      >
+                        <Badge className="bg-primary text-primary-foreground">
+                          <motion.span animate={floatAnimation}>
+                            <Sparkles className="w-3 h-3 mr-1" />
+                          </motion.span>
+                          Most Popular
+                        </Badge>
+                      </motion.div>
                     )}
-                  </CardContent>
-                </Card>
+                    <CardHeader className="pt-8">
+                      <CardTitle className="flex items-center gap-2">
+                        {tier.popular && (
+                          <motion.div animate={floatAnimation}>
+                            <Sparkles className="w-5 h-5 text-accent" />
+                          </motion.div>
+                        )}
+                        {tier.name}
+                      </CardTitle>
+                      <div className="mt-2">
+                        <motion.span 
+                          className="text-4xl font-bold text-foreground"
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          whileInView={{ opacity: 1, scale: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                        >
+                          {tier.price}
+                        </motion.span>
+                        <span className="text-muted-foreground">{tier.period}</span>
+                      </div>
+                      {tier.annual && (
+                        <p className="text-sm text-muted-foreground">{tier.annual}</p>
+                      )}
+                      <p className="text-sm text-muted-foreground mt-2">{tier.description}</p>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3 mb-6">
+                        {tier.features.map((feature, featureIndex) => (
+                          <motion.li 
+                            key={feature} 
+                            className="flex items-start gap-3 text-sm text-foreground/80"
+                            initial={{ opacity: 0, x: -10 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.3 + featureIndex * 0.05 }}
+                          >
+                            <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                            {feature}
+                          </motion.li>
+                        ))}
+                      </ul>
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Button 
+                          variant={tier.popular ? 'glow' : 'outline'} 
+                          className="w-full group"
+                          onClick={() => navigate('/auth')}
+                        >
+                          {tier.cta}
+                          <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                        </Button>
+                      </motion.div>
+                      {tier.popular && (
+                        <p className="text-center text-xs text-muted-foreground mt-3">
+                          7-day free trial • Cancel anytime
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
-        </section>
+        </AnimatedSection>
 
         {/* Detailed Comparison Table */}
-        <section className="px-6 py-16">
+        <AnimatedSection className="px-6 py-16">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl font-semibold text-foreground text-center mb-3">
-              Feature-by-Feature Comparison
-            </h2>
-            <p className="text-muted-foreground text-center mb-10">
-              See exactly how we stack up against the competition
-            </p>
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={staggerContainer}
+              className="text-center mb-10"
+            >
+              <motion.h2 
+                variants={fadeInUp}
+                className="text-2xl font-semibold text-foreground mb-3"
+              >
+                Feature-by-Feature Comparison
+              </motion.h2>
+              <motion.p 
+                variants={fadeInUp}
+                className="text-muted-foreground"
+              >
+                See exactly how we stack up against the competition
+              </motion.p>
+            </motion.div>
 
-            <div className="overflow-x-auto rounded-xl border border-border">
+            <motion.div 
+              className="overflow-x-auto rounded-xl border border-border"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30">
@@ -293,7 +527,14 @@ const Compare: React.FC = () => {
                       {detailedComparison
                         .filter((row) => row.category === category)
                         .map((row, index) => (
-                          <TableRow key={row.feature} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/10'}>
+                          <motion.tr
+                            key={row.feature}
+                            className={`${index % 2 === 0 ? 'bg-background' : 'bg-muted/10'} hover:bg-muted/20 transition-colors`}
+                            initial={{ opacity: 0 }}
+                            whileInView={{ opacity: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: index * 0.03 }}
+                          >
                             <TableCell className="text-foreground/80">{row.feature}</TableCell>
                             <TableCell className="text-center bg-primary/5 border-x border-primary/10">
                               {renderCellValue(row.clearmind, true)}
@@ -302,75 +543,108 @@ const Compare: React.FC = () => {
                             <TableCell className="text-center">{renderCellValue(row.headspace)}</TableCell>
                             <TableCell className="text-center">{renderCellValue(row.wysa)}</TableCell>
                             <TableCell className="text-center">{renderCellValue(row.betterhelp)}</TableCell>
-                          </TableRow>
+                          </motion.tr>
                         ))}
                     </React.Fragment>
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            </motion.div>
 
-            <p className="text-xs text-muted-foreground/60 text-center mt-4">
+            <motion.p 
+              className="text-xs text-muted-foreground/60 text-center mt-4"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.5 }}
+            >
               *Prices and features as of December 2024. Subject to change. BetterHelp pricing varies by therapist.
-            </p>
+            </motion.p>
           </div>
-        </section>
+        </AnimatedSection>
 
         {/* Trust Section */}
-        <section className="px-6 py-16 bg-muted/20">
-          <div className="max-w-4xl mx-auto">
+        <AnimatedSection className="px-6 py-16 bg-muted/20">
+          <motion.div 
+            className="max-w-4xl mx-auto"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+          >
             <div className="grid md:grid-cols-3 gap-8 text-center">
-              <div>
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Shield className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">Privacy First</h3>
-                <p className="text-sm text-muted-foreground">
-                  End-to-end encryption. Your thoughts stay yours.
-                </p>
-              </div>
-              <div>
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Heart className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">No Data Selling</h3>
-                <p className="text-sm text-muted-foreground">
-                  We never sell your data. Ever. That's a promise.
-                </p>
-              </div>
-              <div>
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Clock className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">Available 24/7</h3>
-                <p className="text-sm text-muted-foreground">
-                  Your AI companion is always ready to listen.
-                </p>
-              </div>
+              {trustFeatures.map((item, index) => (
+                <motion.div
+                  key={item.title}
+                  variants={fadeInUp}
+                  transition={{ delay: index * 0.15 }}
+                  whileHover={{ y: -5 }}
+                  className="group"
+                >
+                  <motion.div 
+                    className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/20 transition-colors"
+                    whileHover={{ scale: 1.1, rotate: 10 }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
+                    <item.icon className="w-6 h-6 text-primary" />
+                  </motion.div>
+                  <h3 className="font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {item.description}
+                  </p>
+                </motion.div>
+              ))}
             </div>
-          </div>
-        </section>
+          </motion.div>
+        </AnimatedSection>
 
         {/* CTA Section */}
-        <section className="px-6 py-20">
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-4">
+        <AnimatedSection className="px-6 py-20">
+          <motion.div 
+            className="max-w-2xl mx-auto text-center"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+          >
+            <motion.h2 
+              variants={fadeInUp}
+              className="text-3xl font-bold text-foreground mb-4"
+            >
               Ready to Find Clarity?
-            </h2>
-            <p className="text-muted-foreground mb-8">
+            </motion.h2>
+            <motion.p 
+              variants={fadeInUp}
+              className="text-muted-foreground mb-8"
+            >
               Join thousands who've found a better way to manage their mental wellness.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button variant="glow" size="lg" onClick={() => navigate('/auth')}>
-                Start Free Trial
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-              <Button variant="outline" size="lg" onClick={() => navigate('/')}>
-                Learn More
-              </Button>
-            </div>
-          </div>
-        </section>
+            </motion.p>
+            <motion.div 
+              variants={fadeInUp}
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+            >
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button variant="glow" size="lg" onClick={() => navigate('/auth')} className="group">
+                  Start Free Trial
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button variant="outline" size="lg" onClick={() => navigate('/')}>
+                  Learn More
+                </Button>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </AnimatedSection>
       </div>
     </>
   );
