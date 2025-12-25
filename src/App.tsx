@@ -9,11 +9,13 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { Capacitor } from "@capacitor/core";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { SplashScreen } from "@capacitor/splash-screen";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
+import Install from "./pages/Install";
+import Offline from "./pages/Offline";
 import NotFound from "./pages/NotFound";
-
 const queryClient = new QueryClient();
 
 const initMobilePlugins = async () => {
@@ -45,9 +47,12 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/install" element={<Install />} />
+                <Route path="/offline" element={<Offline />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <PWAInstallPrompt />
             </BrowserRouter>
           </AuthProvider>
         </TooltipProvider>
