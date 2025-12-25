@@ -7,6 +7,7 @@ export class RealtimeChat {
   private localStream: MediaStream | null = null;
   
   constructor(
+    private selectedVoice: string,
     private onMessage: (message: any) => void,
     private onConnectionChange: (status: 'connecting' | 'connected' | 'disconnected') => void,
     private onSpeakingChange: (isSpeaking: boolean) => void,
@@ -34,8 +35,10 @@ export class RealtimeChat {
 
       console.log("Microphone access granted, getting ephemeral token...");
 
-      // Get ephemeral token from our Edge Function
-      const { data, error } = await supabase.functions.invoke("realtime-token");
+      // Get ephemeral token from our Edge Function with selected voice
+      const { data, error } = await supabase.functions.invoke("realtime-token", {
+        body: { voice: this.selectedVoice }
+      });
       
       if (error) {
         console.error("Edge function error:", error);

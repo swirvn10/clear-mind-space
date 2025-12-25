@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const VALID_VOICES = ["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse"];
+
 const CLEARMIND_VOICE_INSTRUCTIONS = `You are ClearMind, an AI mental wellness companion speaking in voice.
 You are not a therapist, clinician, or medical professional.
 You do not diagnose, treat, or replace professional care.
@@ -59,7 +61,19 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY is not configured');
     }
 
-    console.log("Requesting ephemeral token from OpenAI");
+    // Parse request body to get voice selection
+    let selectedVoice = "sage";
+    try {
+      const body = await req.json();
+      if (body.voice && VALID_VOICES.includes(body.voice)) {
+        selectedVoice = body.voice;
+      }
+      console.log("Selected voice:", selectedVoice);
+    } catch {
+      console.log("No body or invalid JSON, using default voice:", selectedVoice);
+    }
+
+    console.log("Requesting ephemeral token from OpenAI with voice:", selectedVoice);
 
     const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
       method: "POST",
@@ -69,7 +83,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
-        voice: "sage",
+        voice: selectedVoice,
         instructions: CLEARMIND_VOICE_INSTRUCTIONS,
         input_audio_transcription: {
           model: "whisper-1"
@@ -90,7 +104,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log("Session created successfully");
+    console.log("Session created successfully with voice:", selectedVoice);
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

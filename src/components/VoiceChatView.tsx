@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, Mic, MicOff, Phone, PhoneOff } from 'lucide-react';
+import { ArrowLeft, Phone, PhoneOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
 import BreathingOrb from '@/components/BreathingOrb';
+import VoiceSelector from '@/components/VoiceSelector';
+import { useProfile } from '@/hooks/useProfile';
+import { AIVoice } from '@/constants/voices';
 
 interface VoiceChatViewProps {
   onBack: () => void;
@@ -16,11 +19,20 @@ interface Transcript {
 }
 
 const VoiceChatView: React.FC<VoiceChatViewProps> = ({ onBack }) => {
+  const { profile, updateVoicePreference } = useProfile();
+  const [selectedVoice, setSelectedVoice] = useState<AIVoice>('sage');
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
   const chatRef = useRef<RealtimeChat | null>(null);
   const transcriptsEndRef = useRef<HTMLDivElement>(null);
+
+  // Update selected voice when profile loads
+  useEffect(() => {
+    if (profile?.preferredVoice) {
+      setSelectedVoice(profile.preferredVoice);
+    }
+  }, [profile?.preferredVoice]);
 
   const scrollToBottom = () => {
     transcriptsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,9 +67,18 @@ const VoiceChatView: React.FC<VoiceChatViewProps> = ({ onBack }) => {
     }]);
   }, []);
 
+  const handleVoiceChange = (voice: AIVoice) => {
+    setSelectedVoice(voice);
+    // Save preference in background
+    updateVoicePreference(voice).catch(err => {
+      console.error('Failed to save voice preference:', err);
+    });
+  };
+
   const startConversation = async () => {
     try {
       chatRef.current = new RealtimeChat(
+        selectedVoice,
         handleMessage,
         handleConnectionChange,
         handleSpeakingChange,
@@ -124,6 +145,15 @@ const VoiceChatView: React.FC<VoiceChatViewProps> = ({ onBack }) => {
                 <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">Your pace</span>
               </div>
             </div>
+            
+            {/* Voice Selector */}
+            <div className="flex justify-center">
+              <VoiceSelector
+                value={selectedVoice}
+                onChange={handleVoiceChange}
+              />
+            </div>
+
             <Button
               variant="default"
               size="lg"
