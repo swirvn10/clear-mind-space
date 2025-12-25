@@ -130,6 +130,7 @@ export type Database = {
           id: string
           last_active_date: string | null
           onboarding_completed: boolean | null
+          preferred_voice: string | null
           reminder_preferences: Json | null
           streak_count: number | null
           updated_at: string
@@ -142,6 +143,7 @@ export type Database = {
           id: string
           last_active_date?: string | null
           onboarding_completed?: boolean | null
+          preferred_voice?: string | null
           reminder_preferences?: Json | null
           streak_count?: number | null
           updated_at?: string
@@ -154,6 +156,7 @@ export type Database = {
           id?: string
           last_active_date?: string | null
           onboarding_completed?: boolean | null
+          preferred_voice?: string | null
           reminder_preferences?: Json | null
           streak_count?: number | null
           updated_at?: string
