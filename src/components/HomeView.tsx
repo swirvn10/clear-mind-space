@@ -1,6 +1,7 @@
 import React from 'react';
-import { MessageCircle, Mic } from 'lucide-react';
+import { MessageCircle, Mic, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 import BreathingOrb from './BreathingOrb';
 import MoodCheckinCard from './MoodCheckinCard';
 import StreakDisplay from './StreakDisplay';
@@ -105,9 +106,18 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
         </Button>
 
         {/* Subtle tagline */}
-        <p className="mt-12 text-sm text-muted-foreground/60">
+        <p className="mt-8 text-sm text-muted-foreground/60">
           Not therapy. Just clarity.
         </p>
+
+        {/* Compare link */}
+        <Link 
+          to="/compare" 
+          className="mt-4 text-sm text-primary/80 hover:text-primary transition-colors flex items-center gap-1 group"
+        >
+          See how we compare to other apps
+          <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
       </div>
     </div>
     </>
