@@ -1,7 +1,7 @@
 import React from 'react';
-import { MessageCircle, Mic, ArrowRight } from 'lucide-react';
+import { MessageCircle, Mic, ArrowRight, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import BreathingOrb from './BreathingOrb';
 import MoodCheckinCard from './MoodCheckinCard';
 import StreakDisplay from './StreakDisplay';
@@ -10,6 +10,7 @@ import ContextualSuggestions, { getTimeGreeting } from './ContextualSuggestions'
 import { useAuth } from '@/hooks/useAuth';
 import { useStreak } from '@/hooks/useStreak';
 import { useProfile } from '@/hooks/useProfile';
+import { usePremium } from '@/hooks/usePremium';
 
 interface HomeViewProps {
   onStartChat: (mode: 'text' | 'voice') => void;
@@ -19,6 +20,10 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
   const { user } = useAuth();
   const { streakCount, isNewMilestone, milestone, clearMilestone, loading: streakLoading } = useStreak();
   const { profile, loading: profileLoading } = useProfile();
+  const { isPremium, checkLimit, getUsageDisplay } = usePremium();
+  const navigate = useNavigate();
+
+  const chatCheck = checkLimit('chat');
 
   return (
     <>
@@ -81,15 +86,22 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
         )}
 
         {/* Primary CTA */}
-        <Button
-          variant="glow"
-          size="xl"
-          onClick={() => onStartChat('text')}
-          className="w-full max-w-xs mb-4"
-        >
-          <MessageCircle className="w-6 h-6" />
-          Talk it out
-        </Button>
+        <div className="relative w-full max-w-xs">
+          <Button
+            variant="glow"
+            size="xl"
+            onClick={() => onStartChat('text')}
+            className="w-full mb-4"
+          >
+            <MessageCircle className="w-6 h-6" />
+            Talk it out
+          </Button>
+          {user && !isPremium && (
+            <span className="absolute -top-2 -right-2 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+              {chatCheck.remaining}/{chatCheck.limit} today
+            </span>
+          )}
+        </div>
 
         {/* Voice option */}
         <Button
@@ -100,10 +112,24 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat }) => {
         >
           <Mic className="w-5 h-5" />
           Voice mode
-          <span className="ml-2 text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
-            Premium
-          </span>
+          {!isPremium && (
+            <span className="ml-2 text-xs bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <Crown className="w-3 h-3" />
+              30s preview
+            </span>
+          )}
         </Button>
+
+        {/* Upgrade prompt for free users */}
+        {user && !isPremium && (
+          <button
+            onClick={() => navigate('/pricing')}
+            className="mt-4 flex items-center gap-2 text-sm text-amber-500 hover:text-amber-400 transition-colors"
+          >
+            <Crown className="w-4 h-4" />
+            <span>Upgrade for unlimited access</span>
+          </button>
+        )}
 
         {/* Subtle tagline */}
         <p className="mt-8 text-sm text-muted-foreground/60">

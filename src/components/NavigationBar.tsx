@@ -1,6 +1,8 @@
 import React from 'react';
-import { Home, BookOpen, RotateCcw, Brain, TrendingUp, Settings } from 'lucide-react';
+import { Home, BookOpen, Brain, TrendingUp, Settings, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePremium } from '@/hooks/usePremium';
+import { useNavigate } from 'react-router-dom';
 
 interface NavigationBarProps {
   activeView: string;
@@ -8,6 +10,9 @@ interface NavigationBarProps {
 }
 
 const NavigationBar: React.FC<NavigationBarProps> = ({ activeView, onNavigate }) => {
+  const { isPremium } = usePremium();
+  const navigate = useNavigate();
+  
   const navItems = [
     { id: 'home', icon: Home, label: 'Home' },
     { id: 'insights', icon: TrendingUp, label: 'Insights' },
@@ -35,6 +40,17 @@ const NavigationBar: React.FC<NavigationBarProps> = ({ activeView, onNavigate })
             <span className="text-xs font-medium">{label}</span>
           </Button>
         ))}
+        {!isPremium && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/pricing')}
+            className="flex flex-col items-center gap-1 h-auto py-2 px-3 text-amber-500 hover:text-amber-400 hover:bg-amber-500/10"
+          >
+            <Crown className="w-5 h-5" />
+            <span className="text-xs font-medium">Upgrade</span>
+          </Button>
+        )}
       </div>
     </nav>
   );

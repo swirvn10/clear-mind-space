@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useConversations } from '@/hooks/useConversations';
+import { usePremium } from '@/hooks/usePremium';
 import ConversationSidebar from './ConversationSidebar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { PremiumGate } from './PremiumGate';
 
 interface ChatViewProps {
   mode: 'text' | 'voice';
@@ -135,8 +137,19 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
     onDone();
   };
 
+  const { checkLimit, incrementUsage, isPremium } = usePremium();
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+
+    // Check chat limit for free users
+    const chatCheck = checkLimit('chat');
+    if (!chatCheck.allowed && !isPremium) {
+      toast.error('Daily chat limit reached', {
+        description: 'Upgrade to Premium for unlimited conversations.',
+      });
+      return;
+    }
 
     let activeConversation = currentConversation;
     
@@ -149,6 +162,9 @@ const ChatView: React.FC<ChatViewProps> = ({ mode, onBack }) => {
     const userContent = input.trim();
     setInput('');
     setIsLoading(true);
+
+    // Increment usage before sending
+    await incrementUsage('chat');
 
     // Save user message to database
     await addMessage('user', userContent);
