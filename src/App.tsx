@@ -19,6 +19,10 @@ import Offline from "./pages/Offline";
 import Compare from "./pages/Compare";
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
+import Prompts from "./pages/Prompts";
+import Ethics from "./pages/Ethics";
+import Experience from "./pages/Experience";
+import AIWellnessComparison from "./pages/AIWellnessComparison";
 const queryClient = new QueryClient();
 
 const initMobilePlugins = async () => {
@@ -55,6 +59,10 @@ const App = () => {
                   <Route path="/install" element={<Install />} />
                   <Route path="/offline" element={<Offline />} />
                   <Route path="/compare" element={<Compare />} />
+                  <Route path="/prompts" element={<Prompts />} />
+                  <Route path="/ethics" element={<Ethics />} />
+                  <Route path="/experience" element={<Experience />} />
+                  <Route path="/ai-wellness-comparison" element={<AIWellnessComparison />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
