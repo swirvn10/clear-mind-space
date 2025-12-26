@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { usePremium } from '@/hooks/usePremium';
+import { PremiumGate } from './PremiumGate';
 import MindMapVisualization from './MindMapVisualization';
 
 interface Theme {
@@ -54,12 +56,15 @@ interface SavedUntangle {
 
 const ThoughtUntanglerView: React.FC = () => {
   const { user } = useAuth();
+  const { checkLimit, incrementUsage, isPremium, getUsageDisplay } = usePremium();
   const [rawInput, setRawInput] = useState('');
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [savedUntangles, setSavedUntangles] = useState<SavedUntangle[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const untangleCheck = checkLimit('untangle');
 
   useEffect(() => {
     if (user) {
@@ -93,8 +98,19 @@ const ThoughtUntanglerView: React.FC = () => {
       return;
     }
 
+    // Check untangle limit for free users
+    if (!untangleCheck.allowed && !isPremium) {
+      toast.error('Daily untangle limit reached', {
+        description: 'Upgrade to Premium for unlimited sessions.',
+      });
+      return;
+    }
+
     setIsLoading(true);
     setAnalysis(null);
+
+    // Increment usage
+    await incrementUsage('untangle');
 
     try {
       const response = await fetch(
@@ -192,10 +208,11 @@ const ThoughtUntanglerView: React.FC = () => {
             <Brain className="w-6 h-6 text-primary" />
           </div>
           <h1 className="text-2xl font-semibold text-foreground">Thought Untangler</h1>
-          <Badge variant="secondary" className="bg-accent/20 text-accent border-accent/30">
-            <Sparkles className="w-3 h-3 mr-1" />
-            Premium
-          </Badge>
+          {!isPremium && (
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+              {getUsageDisplay('untangle')}
+            </span>
+          )}
         </div>
         <p className="text-muted-foreground">
           Pour out your scattered thoughts and let AI organize them into clarity.

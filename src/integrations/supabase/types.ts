@@ -193,6 +193,45 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       thought_untangles: {
         Row: {
           analysis: Json | null
@@ -214,6 +253,42 @@ export type Database = {
           id?: string
           raw_input?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      usage_tracking: {
+        Row: {
+          chat_count: number
+          created_at: string
+          date: string
+          id: string
+          journal_count: number
+          untangle_count: number
+          updated_at: string
+          user_id: string
+          voice_seconds: number
+        }
+        Insert: {
+          chat_count?: number
+          created_at?: string
+          date?: string
+          id?: string
+          journal_count?: number
+          untangle_count?: number
+          updated_at?: string
+          user_id: string
+          voice_seconds?: number
+        }
+        Update: {
+          chat_count?: number
+          created_at?: string
+          date?: string
+          id?: string
+          journal_count?: number
+          untangle_count?: number
+          updated_at?: string
+          user_id?: string
+          voice_seconds?: number
         }
         Relationships: []
       }
@@ -243,12 +318,52 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_or_create_daily_usage: {
+        Args: { p_user_id: string }
+        Returns: {
+          chat_count: number
+          created_at: string
+          date: string
+          id: string
+          journal_count: number
+          untangle_count: number
+          updated_at: string
+          user_id: string
+          voice_seconds: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "usage_tracking"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_usage: {
+        Args: { p_amount?: number; p_feature: string; p_user_id: string }
+        Returns: {
+          chat_count: number
+          created_at: string
+          date: string
+          id: string
+          journal_count: number
+          untangle_count: number
+          updated_at: string
+          user_id: string
+          voice_seconds: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "usage_tracking"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       update_user_streak: { Args: { p_user_id: string }; Returns: number }
     }

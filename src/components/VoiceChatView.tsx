@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, Phone, PhoneOff } from 'lucide-react';
+import { ArrowLeft, Phone, PhoneOff, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
 import BreathingOrb from '@/components/BreathingOrb';
 import VoiceSelector from '@/components/VoiceSelector';
 import { useProfile } from '@/hooks/useProfile';
+import { usePremium } from '@/hooks/usePremium';
 import { AIVoice } from '@/constants/voices';
+import { useNavigate } from 'react-router-dom';
 
 interface VoiceChatViewProps {
   onBack: () => void;
@@ -20,10 +22,14 @@ interface Transcript {
 
 const VoiceChatView: React.FC<VoiceChatViewProps> = ({ onBack }) => {
   const { profile, updateVoicePreference } = useProfile();
+  const { checkLimit, incrementUsage, isPremium, getUsageDisplay } = usePremium();
+  const navigate = useNavigate();
   const [selectedVoice, setSelectedVoice] = useState<AIVoice>('sage');
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
+  const [voiceSecondsUsed, setVoiceSecondsUsed] = useState(0);
+  const voiceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const chatRef = useRef<RealtimeChat | null>(null);
   const transcriptsEndRef = useRef<HTMLDivElement>(null);
 
@@ -75,7 +81,17 @@ const VoiceChatView: React.FC<VoiceChatViewProps> = ({ onBack }) => {
     });
   };
 
+  const voiceCheck = checkLimit('voice');
+
   const startConversation = async () => {
+    // Check voice limit for free users
+    if (!voiceCheck.allowed && !isPremium) {
+      toast.error('Voice time limit reached', {
+        description: 'Upgrade to Premium for unlimited voice conversations.',
+      });
+      return;
+    }
+
     try {
       chatRef.current = new RealtimeChat(
         selectedVoice,
@@ -85,6 +101,24 @@ const VoiceChatView: React.FC<VoiceChatViewProps> = ({ onBack }) => {
         handleTranscript
       );
       await chatRef.current.init();
+
+      // Start tracking voice time for free users
+      if (!isPremium) {
+        voiceTimerRef.current = setInterval(async () => {
+          setVoiceSecondsUsed(prev => {
+            const newValue = prev + 1;
+            // Check if limit reached
+            if (newValue >= voiceCheck.limit) {
+              endConversation();
+              toast.info('Voice preview ended', {
+                description: 'Upgrade to Premium for unlimited voice time.',
+              });
+            }
+            return newValue;
+          });
+          await incrementUsage('voice', 1);
+        }, 1000);
+      }
     } catch (error) {
       console.error('Error starting conversation:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to start voice session');
@@ -93,12 +127,19 @@ const VoiceChatView: React.FC<VoiceChatViewProps> = ({ onBack }) => {
   };
 
   const endConversation = () => {
+    if (voiceTimerRef.current) {
+      clearInterval(voiceTimerRef.current);
+      voiceTimerRef.current = null;
+    }
     chatRef.current?.disconnect();
     chatRef.current = null;
   };
 
   useEffect(() => {
     return () => {
+      if (voiceTimerRef.current) {
+        clearInterval(voiceTimerRef.current);
+      }
       chatRef.current?.disconnect();
     };
   }, []);
@@ -143,6 +184,12 @@ const VoiceChatView: React.FC<VoiceChatViewProps> = ({ onBack }) => {
                 <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">Calm & patient</span>
                 <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">No judgment</span>
                 <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">Your pace</span>
+                {!isPremium && (
+                  <span className="text-xs bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full flex items-center gap-1">
+                    <Crown className="w-3 h-3" />
+                    {getUsageDisplay('voice')}
+                  </span>
+                )}
               </div>
             </div>
             

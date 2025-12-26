@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useJournalEntries, JournalEntry } from '@/hooks/useJournalEntries';
 import { useAuth } from '@/hooks/useAuth';
+import { usePremium } from '@/hooks/usePremium';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,6 +20,7 @@ import {
 const JournalView: React.FC = () => {
   const { user } = useAuth();
   const { entries, loading, createEntry, updateEntry, deleteEntry } = useJournalEntries();
+  const { checkLimit, incrementUsage, getUsageDisplay, isPremium } = usePremium();
   const [isWriting, setIsWriting] = useState(false);
   const [newEntry, setNewEntry] = useState('');
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
@@ -25,6 +28,8 @@ const JournalView: React.FC = () => {
   const [expandedEntry, setExpandedEntry] = useState<JournalEntry | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const journalCheck = checkLimit('journal');
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -45,7 +50,16 @@ const JournalView: React.FC = () => {
   const handleSaveEntry = async () => {
     if (!newEntry.trim()) return;
     
+    // Check journal limit for free users
+    if (!journalCheck.allowed && !isPremium) {
+      toast.error('Monthly journal limit reached', {
+        description: 'Upgrade to Premium for unlimited entries.',
+      });
+      return;
+    }
+
     setSaving(true);
+    await incrementUsage('journal');
     await createEntry(newEntry);
     setNewEntry('');
     setIsWriting(false);
@@ -91,7 +105,14 @@ const JournalView: React.FC = () => {
       <div className="max-w-lg mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-heading font-semibold text-foreground mb-2">Journal</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-heading font-semibold text-foreground mb-2">Journal</h1>
+            {!isPremium && (
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                {getUsageDisplay('journal')}
+              </span>
+            )}
+          </div>
           <p className="text-muted-foreground">
             A space for your thoughts, unfiltered.
           </p>
