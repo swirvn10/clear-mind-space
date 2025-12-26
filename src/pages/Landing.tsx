@@ -357,7 +357,7 @@ const Landing = () => {
             >
               <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 mb-6">
                 <Star className="w-4 h-4 text-accent fill-accent" />
-                <span className="text-sm text-accent">Loved by thousands</span>
+                <span className="text-sm text-accent">Loved by early adopters</span>
               </motion.div>
               <motion.h2 variants={fadeInUp} className="text-3xl sm:text-heading font-bold text-foreground mb-4">
                 Real stories, real impact
@@ -413,9 +413,9 @@ const Landing = () => {
           >
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {[
-                { value: "50K+", label: "Active Users" },
-                { value: "1M+", label: "Conversations" },
-                { value: "4.9", label: "App Rating" },
+                { value: "2,847", label: "Active Users" },
+                { value: "18K+", label: "Conversations" },
+                { value: "4.8", label: "App Rating" },
                 { value: "24/7", label: "Availability" }
               ].map((stat, index) => (
                 <motion.div 
