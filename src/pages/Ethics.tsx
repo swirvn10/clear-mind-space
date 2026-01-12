@@ -93,9 +93,22 @@ const Ethics = () => {
       <Helmet>
         <title>ClearMind's Ethical AI Principles | Mental Wellness Technology Ethics</title>
         <meta name="description" content="ClearMind's commitment to ethical AI in mental wellness: no diagnosis, no data selling, no emotional manipulation, transparent pricing, and clear crisis boundaries." />
+        <meta name="keywords" content="ethical AI, mental wellness ethics, AI privacy, transparent pricing, mental health technology, responsible AI" />
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="ClearMind" />
+        <link rel="canonical" href="https://clearmind.app/ethics" />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://clearmind.app/ethics" />
         <meta property="og:title" content="ClearMind's Ethical AI Principles" />
         <meta property="og:description" content="How we build AI for mental wellness responsibly: privacy, transparency, and user wellbeing first." />
-        <link rel="canonical" href="https://clearmind.app/ethics" />
+        <meta property="og:site_name" content="ClearMind" />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="ClearMind's Ethical AI Principles" />
+        <meta name="twitter:description" content="How we build AI for mental wellness responsibly: privacy, transparency, and user wellbeing first." />
       </Helmet>
       <StructuredData type="ethics" />
 
