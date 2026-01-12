@@ -105,9 +105,22 @@ const AIWellnessComparison = () => {
       <Helmet>
         <title>Best AI Mental Wellness App for Clarity | ClearMind vs Alternatives</title>
         <meta name="description" content="Compare AI mental wellness apps: conversation quality, privacy, pricing, and emotional intelligence. Learn what makes ClearMind different from typical AI therapy apps." />
+        <meta name="keywords" content="AI wellness app comparison, best AI therapy app, AI mental health apps, Wysa alternative, Woebot alternative, mental wellness app comparison" />
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="ClearMind" />
+        <link rel="canonical" href="https://clearmind.app/ai-wellness-comparison" />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://clearmind.app/ai-wellness-comparison" />
         <meta property="og:title" content="AI Mental Wellness Apps: What to Look For" />
         <meta property="og:description" content="A guide to choosing an AI mental wellness app that actually helps—without manipulation or paywalls." />
-        <link rel="canonical" href="https://clearmind.app/ai-wellness-comparison" />
+        <meta property="og:site_name" content="ClearMind" />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="AI Mental Wellness Apps: What to Look For" />
+        <meta name="twitter:description" content="A guide to choosing an AI mental wellness app that actually helps—without manipulation or paywalls." />
       </Helmet>
 
       <div className="min-h-screen bg-background">

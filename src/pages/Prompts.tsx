@@ -127,9 +127,22 @@ const Prompts = () => {
       <Helmet>
         <title>ClearMind Prompts for Mental Clarity | AI Wellness Conversation Starters</title>
         <meta name="description" content="Explore 40+ thoughtful prompts for AI-assisted mental wellness conversations. Topics include overwhelm, burnout, overthinking, decision fatigue, and mental load." />
+        <meta name="keywords" content="mental wellness prompts, AI therapy conversation starters, overwhelm help, burnout support, overthinking prompts, decision fatigue, mental clarity" />
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="ClearMind" />
+        <link rel="canonical" href="https://clearmind.app/prompts" />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://clearmind.app/prompts" />
         <meta property="og:title" content="ClearMind Prompts for Mental Clarity" />
         <meta property="og:description" content="40+ conversation starters for processing emotions, reducing overwhelm, and gaining mental clarity." />
-        <link rel="canonical" href="https://clearmind.app/prompts" />
+        <meta property="og:site_name" content="ClearMind" />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="ClearMind Prompts for Mental Clarity" />
+        <meta name="twitter:description" content="40+ conversation starters for processing emotions, reducing overwhelm, and gaining mental clarity." />
       </Helmet>
       <StructuredData type="prompts" />
 

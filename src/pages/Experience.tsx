@@ -30,9 +30,22 @@ const Experience = () => {
       <Helmet>
         <title>What It Feels Like to Use ClearMind | First-Person Experience</title>
         <meta name="description" content="A honest look at what using ClearMind actually feels like. No hype, no promises—just real experiences from daily mental wellness practice." />
+        <meta name="keywords" content="ClearMind review, AI mental wellness experience, using AI for mental health, mental clarity app review, honest AI therapy review" />
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="ClearMind" />
+        <link rel="canonical" href="https://clearmind.app/experience" />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content="https://clearmind.app/experience" />
         <meta property="og:title" content="What It Feels Like to Use ClearMind" />
         <meta property="og:description" content="An honest, first-person account of using AI for daily mental clarity." />
-        <link rel="canonical" href="https://clearmind.app/experience" />
+        <meta property="og:site_name" content="ClearMind" />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="What It Feels Like to Use ClearMind" />
+        <meta name="twitter:description" content="An honest, first-person account of using AI for daily mental clarity." />
       </Helmet>
       <StructuredData type="experience" />
 
